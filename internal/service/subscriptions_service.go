@@ -12,6 +12,8 @@ type SubscriptionsRepository interface {
 	CreateSubscription(ctx context.Context, input models.SubscriptionInput) (models.Subscription, error)
 	GetSubscriptions(ctx context.Context, userID int64) ([]models.Subscription, error)
 	GetSubscriptionByID(ctx context.Context, id int64, userID int64) (models.Subscription, error)
+	UpdateSubscription(ctx context.Context, id int64, userID int64, input models.SubscriptionUpdateInput) (models.Subscription, error)
+	DeleteSubscription(ctx context.Context, id int64, userID int64) error
 }
 
 type SubscriptionService struct {
@@ -93,3 +95,45 @@ func (s *SubscriptionService) GetSubscriptionByID(
 
 		return subscription, nil
 	}
+
+func (s *SubscriptionService) UpdateSubscription(
+	ctx context.Context,
+	id int64,
+	userID int64,
+	input models.SubscriptionUpdateInput,
+) (models.Subscription, error) {
+	if id <= 0 {
+		return models.Subscription{}, ErrInvalidSubscriptionID
+	}
+
+	if userID <= 0 {
+		return models.Subscription{}, ErrInvalidUserID
+	}
+
+	if input.Price.LessThanOrEqual(decimal.Zero) {
+		return models.Subscription{}, ErrInvalidPrice
+	}
+
+	if input.Service == "" {
+		return models.Subscription{}, ErrEmptyService
+	}
+
+	updatedSubscription, err := s.subscriptionsRepo.UpdateSubscription(ctx, id, userID, input)
+	if err != nil {
+		return models.Subscription{}, err
+	}
+
+	return updatedSubscription, nil
+}
+
+func (s *SubscriptionService) DeleteSubscription(ctx context.Context, id int64, userID int64) error {
+	if id <= 0 {
+		return ErrInvalidSubscriptionID
+	}
+
+	if userID <= 0 {
+		return ErrInvalidUserID
+	}
+
+	return s.subscriptionsRepo.DeleteSubscription(ctx, id, userID)
+}

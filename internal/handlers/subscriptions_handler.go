@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -70,6 +71,112 @@ func (h *SubscriptionHandler) GetSubscriptions(w http.ResponseWriter, r *http.Re
 }
 
 
-func (h *SubscriptionHandler) GetSubscriptionByID(w http.ResponseWriter, r *http.Request){
+func (h *SubscriptionHandler) GetSubscriptionByID(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid subscription id")
+		return
+	}
 
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	subscription, err := h.subscriptionService.GetSubscriptionByID(r.Context(), id, userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidSubscriptionID):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrInvalidUserID):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			response.WriteError(w, http.StatusNotFound, "subscription not found")
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "failed to get subscription")
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, subscription)
+}
+
+func (h *SubscriptionHandler) UpdateSubscription(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid subscription id")
+		return
+	}
+
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	var input models.SubscriptionUpdateInput
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid JSON")
+		return
+	}
+
+	updatedSubscription, err := h.subscriptionService.UpdateSubscription(r.Context(), id, userID, input)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidSubscriptionID):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrInvalidUserID):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrInvalidPrice):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrEmptyService):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			response.WriteError(w, http.StatusNotFound, "subscription not found")
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "failed to update subscription")
+		}
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, updatedSubscription)
+}
+
+func (h *SubscriptionHandler) DeleteSubscription(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid subscription id")
+		return
+	}
+
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	err = h.subscriptionService.DeleteSubscription(r.Context(), id, userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidSubscriptionID):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrInvalidUserID):
+			response.WriteError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			response.WriteError(w, http.StatusNotFound, "subscription not found")
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "failed to delete subscription")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

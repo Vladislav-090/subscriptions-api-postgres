@@ -22,3 +22,9 @@ type SubscriptionInput struct {
 	Price     decimal.Decimal `json:"price"`
 	StartDate time.Time       `json:"start_date"`
 }
+
+type SubscriptionUpdateInput struct {
+	Service   string          `json:"service"`
+	Price     decimal.Decimal `json:"price"`
+	StartDate time.Time       `json:"start_date"`
+}

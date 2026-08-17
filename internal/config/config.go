@@ -3,11 +3,13 @@ package config
 import (
 	"github.com/joho/godotenv"
 	"os"
+	"time"
 )
 
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	JWT      JWTConfig
 }
 
 type ServerConfig struct {
@@ -23,8 +25,20 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+type JWTConfig struct {
+	Secret string
+	TTL    time.Duration
+}
+
+const defaultJWTTTL = 24 * time.Hour
+
 func Load() (*Config, error) {
 	_ = godotenv.Load()
+
+	jwtTTL, err := time.ParseDuration(os.Getenv("JWT_TTL"))
+	if err != nil {
+		jwtTTL = defaultJWTTTL
+	}
 
 	cfg := Config{
 		Server: ServerConfig{
@@ -38,6 +52,11 @@ func Load() (*Config, error) {
 			Password: os.Getenv("POSTGRES_PASSWORD"),
 			Name:     os.Getenv("POSTGRES_DB"),
 			SSLMode:  os.Getenv("POSTGRES_SSLMODE"),
+		},
+
+		JWT: JWTConfig{
+			Secret: os.Getenv("JWT_SECRET"),
+			TTL:    jwtTTL,
 		},
 	}
 

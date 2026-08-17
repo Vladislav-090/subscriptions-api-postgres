@@ -6,10 +6,13 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"subscriptions-api-postgres/internal/auth"
 	"subscriptions-api-postgres/internal/models"
 	"subscriptions-api-postgres/internal/response"
 	"subscriptions-api-postgres/internal/service"
 )
+
+var errMissingClaims = errors.New("missing auth claims")
 
 type SubscriptionHandler struct {
 	subscriptionService *service.SubscriptionService
@@ -28,6 +31,16 @@ func (h *SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.
 	if err != nil {
 		response.WriteError(w, http.StatusBadRequest, "invalid JSON")
 		return
+	}
+
+	claims, ok := auth.ClaimsFromContext(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, errMissingClaims.Error())
+		return
+	}
+
+	if claims.Role != models.RoleAdmin {
+		input.UserID = claims.UserID
 	}
 
 	createdSubscription, err := h.subscriptionService.CreateSubscription(r.Context(), input)
@@ -50,12 +63,22 @@ func (h *SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.
 
 func (h *SubscriptionHandler) GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
-	idStr := r.URL.Query().Get("user_id")
-	userID, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+	claims, ok := auth.ClaimsFromContext(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, errMissingClaims.Error())
 		return
 	}
+
+	userID := claims.UserID
+	if claims.Role == models.RoleAdmin {
+		parsedID, err := strconv.ParseInt(r.URL.Query().Get("user_id"), 10, 64)
+		if err != nil {
+			response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+			return
+		}
+		userID = parsedID
+	}
+
 	subscriptions, err := h.subscriptionService.GetSubscriptions(r.Context(), userID)
 	if err != nil {
 		switch {
@@ -79,11 +102,20 @@ func (h *SubscriptionHandler) GetSubscriptionByID(w http.ResponseWriter, r *http
 		return
 	}
 
-	userIDStr := r.URL.Query().Get("user_id")
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+	claims, ok := auth.ClaimsFromContext(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, errMissingClaims.Error())
 		return
+	}
+
+	userID := claims.UserID
+	if claims.Role == models.RoleAdmin {
+		parsedID, err := strconv.ParseInt(r.URL.Query().Get("user_id"), 10, 64)
+		if err != nil {
+			response.WriteError(w, http.StatusBadRequest, "invalid user ID")
+			return
+		}
+		userID = parsedID
 	}
 
 	subscription, err := h.subscriptionService.GetSubscriptionByID(r.Context(), id, userID)

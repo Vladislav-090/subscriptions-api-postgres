@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"subscriptions-api-postgres/internal/auth"
 	"subscriptions-api-postgres/internal/config"
 	"subscriptions-api-postgres/internal/database"
 	"subscriptions-api-postgres/internal/handlers"
@@ -31,7 +32,13 @@ func main() {
 	subscriptionService := service.NewSubscriptionsService(subscriptionRepository)
 	subscriptionHandler := handlers.NewSubscriptionsHandler(subscriptionService)
 
-	appRouter := router.New(subscriptionHandler)
+	jwtManager := auth.NewJWTManager(cfg.JWT.Secret, cfg.JWT.TTL)
+
+	usersRepository := repository.NewUsersRepository(db)
+	authService := service.NewAuthService(usersRepository, jwtManager)
+	authHandler := handlers.NewAuthHandler(authService)
+
+	appRouter := router.New(subscriptionHandler, authHandler, jwtManager)
 
 	address := ":" + cfg.Server.Port
 

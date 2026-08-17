@@ -57,14 +57,13 @@ func (h *SubscriptionHandler) GetSubscriptions(w http.ResponseWriter, r *http.Re
 	}
 	subscriptions, err := h.subscriptionService.GetSubscriptions(r.Context(), userID)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "failed to get subscriptions")
-		return
-	}
-	if err != nil {
-		if errors.Is(err, service.ErrInvalidUserID) {
+		switch {
+		case errors.Is(err, service.ErrInvalidUserID):
 			response.WriteError(w, http.StatusBadRequest, "invalid user ID")
-			return
+		default:
+			response.WriteError(w, http.StatusInternalServerError, "failed to get subscriptions")
 		}
+		return
 	}
 
 	response.WriteJSON(w, http.StatusOK, subscriptions)

@@ -1,0 +1,16 @@
+.env
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/tmp/
+
+# IDE
+.idea/
+.vscode/

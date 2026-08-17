@@ -99,8 +99,8 @@ func (r *SubscriptionsRepository) GetSubscriptions(
 
 func (r *SubscriptionsRepository) GetSubscriptionByID(
 	ctx context.Context,
-	userID int64,
 	id int64,
+	userID int64,
 ) (models.Subscription, error) {
 	query := `SELECT id, user_id, service, price, start_date, created_at, updated_at
 		FROM subscriptions

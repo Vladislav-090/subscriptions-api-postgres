@@ -14,6 +14,17 @@ import (
 
 var errMissingClaims = errors.New("missing auth claims")
 
+// parseOptionalInt64Query returns 0 (no error) when key is absent from the
+// query string, so callers can treat 0 as "not specified" and apply their
+// own default. A present-but-non-numeric value is a client error.
+func parseOptionalInt64Query(r *http.Request, key string) (int64, error) {
+	value := r.URL.Query().Get(key)
+	if value == "" {
+		return 0, nil
+	}
+	return strconv.ParseInt(value, 10, 64)
+}
+
 type SubscriptionHandler struct {
 	subscriptionService *service.SubscriptionService
 }
@@ -79,7 +90,19 @@ func (h *SubscriptionHandler) GetSubscriptions(w http.ResponseWriter, r *http.Re
 		userID = parsedID
 	}
 
-	subscriptions, err := h.subscriptionService.GetSubscriptions(r.Context(), userID)
+	limit, err := parseOptionalInt64Query(r, "limit")
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid limit")
+		return
+	}
+
+	offset, err := parseOptionalInt64Query(r, "offset")
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid offset")
+		return
+	}
+
+	subscriptions, err := h.subscriptionService.GetSubscriptions(r.Context(), userID, limit, offset)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidUserID):

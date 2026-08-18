@@ -53,15 +53,18 @@ RETURNING id, user_id, service, price, start_date, created_at, updated_at`
 func (r *SubscriptionsRepository) GetSubscriptions(
 	ctx context.Context,
 	userID int64,
+	limit int64,
+	offset int64,
 ) ([]models.Subscription, error) {
 
 	query := `
 		SELECT id, user_id, service, price, start_date, created_at, updated_at
 		FROM subscriptions
 		WHERE user_id = $1
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

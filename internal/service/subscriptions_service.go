@@ -10,7 +10,7 @@ import (
 
 type SubscriptionsRepository interface {
 	CreateSubscription(ctx context.Context, input models.SubscriptionInput) (models.Subscription, error)
-	GetSubscriptions(ctx context.Context, userID int64) ([]models.Subscription, error)
+	GetSubscriptions(ctx context.Context, userID int64, limit int64, offset int64) ([]models.Subscription, error)
 	GetSubscriptionByID(ctx context.Context, id int64, userID int64) (models.Subscription, error)
 	UpdateSubscription(ctx context.Context, id int64, userID int64, input models.SubscriptionUpdateInput) (models.Subscription, error)
 	DeleteSubscription(ctx context.Context, id int64, userID int64) error
@@ -31,6 +31,11 @@ var (
 	ErrInvalidPrice  = errors.New("price must be positive")
 	ErrEmptyService  = errors.New("service cannot be empty")
 	ErrInvalidSubscriptionID = errors.New("invalid subscription id")
+)
+
+const (
+	defaultSubscriptionsLimit = 20
+	maxSubscriptionsLimit     = 100
 )
 
 func (s *SubscriptionService) CreateSubscription(
@@ -63,11 +68,22 @@ func (s *SubscriptionService) CreateSubscription(
 	return createdSubscription, nil
 }
 
-func (s *SubscriptionService) GetSubscriptions(ctx context.Context, userID int64) ([]models.Subscription, error) {
+func (s *SubscriptionService) GetSubscriptions(ctx context.Context, userID int64, limit int64, offset int64) ([]models.Subscription, error) {
 	if userID <= 0 {
 		return []models.Subscription{}, ErrInvalidUserID
 	}
-	subscriptions, err := s.subscriptionsRepo.GetSubscriptions(ctx, userID)
+
+	if limit <= 0 {
+		limit = defaultSubscriptionsLimit
+	}
+	if limit > maxSubscriptionsLimit {
+		limit = maxSubscriptionsLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	subscriptions, err := s.subscriptionsRepo.GetSubscriptions(ctx, userID, limit, offset)
 	if err != nil {
 		return []models.Subscription{}, err
 	}

@@ -29,5 +29,5 @@ func New(
 	mux.Handle("PUT /subscriptions/{id}", middleware.Chain(http.HandlerFunc(subscriptionHandler.UpdateSubscription), authenticate, requireAdmin))
 	mux.Handle("DELETE /subscriptions/{id}", middleware.Chain(http.HandlerFunc(subscriptionHandler.DeleteSubscription), authenticate, requireAdmin))
 
-	return mux
+	return middleware.Logging(mux)
 }

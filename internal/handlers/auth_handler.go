@@ -42,7 +42,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrEmailTaken):
 			response.WriteError(w, http.StatusConflict, err.Error())
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to register user")
+			response.WriteServerError(w, "failed to register user", err)
 		}
 		return
 	}
@@ -65,7 +65,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrInvalidCredentials):
 			response.WriteError(w, http.StatusUnauthorized, err.Error())
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to login")
+			response.WriteServerError(w, "failed to login", err)
 		}
 		return
 	}

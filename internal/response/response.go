@@ -2,7 +2,7 @@ package response
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -19,7 +19,7 @@ func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.WriteHeader(status)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
-		log.Println("failed to encode response")
+		slog.Error("failed to encode response", "error", err)
 	}
 }
 
@@ -29,4 +29,9 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 	}
 
 	WriteJSON(w, status, errorResponse)
+}
+
+func WriteServerError(w http.ResponseWriter, message string, err error) {
+	slog.Error(message, "error", err)
+	WriteError(w, http.StatusInternalServerError, message)
 }

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"subscriptions-api-postgres/internal/auth"
 	"subscriptions-api-postgres/internal/config"
 	"subscriptions-api-postgres/internal/database"
@@ -13,20 +14,21 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Println("error:", err)
+		slog.Error("failed to load config", "error", err)
 		return
 	}
 
 	db, err := database.Connect(cfg.Database)
 	if err != nil {
-		fmt.Println("db connection error:", err)
+		slog.Error("failed to connect to database", "error", err)
 		return
 	}
 	defer db.Close()
-	fmt.Println("db connection successfully")
+	slog.Info("database connected")
 
 	subscriptionRepository := repository.NewSubscriptionsRepository(db)
 	subscriptionService := service.NewSubscriptionsService(subscriptionRepository)
@@ -42,10 +44,10 @@ func main() {
 
 	address := ":" + cfg.Server.Port
 
-	fmt.Println("server is running on", address)
+	slog.Info("server starting", "address", address)
 	err = http.ListenAndServe(address, appRouter)
 	if err != nil {
-		fmt.Println("server error:", err)
+		slog.Error("server failed", "error", err)
 		return
 	}
 

@@ -53,7 +53,7 @@ func (h *SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.
 		case errors.Is(err, service.ErrInvalidUserID):
 			response.WriteError(w, http.StatusBadRequest, err.Error())
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to create subscription")
+			response.WriteServerError(w, "failed to create subscription", err)
 		}
 		return
 	}
@@ -85,7 +85,7 @@ func (h *SubscriptionHandler) GetSubscriptions(w http.ResponseWriter, r *http.Re
 		case errors.Is(err, service.ErrInvalidUserID):
 			response.WriteError(w, http.StatusBadRequest, "invalid user ID")
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to get subscriptions")
+			response.WriteServerError(w, "failed to get subscriptions", err)
 		}
 		return
 	}
@@ -128,7 +128,7 @@ func (h *SubscriptionHandler) GetSubscriptionByID(w http.ResponseWriter, r *http
 		case errors.Is(err, sql.ErrNoRows):
 			response.WriteError(w, http.StatusNotFound, "subscription not found")
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to get subscription")
+			response.WriteServerError(w, "failed to get subscription", err)
 		}
 		return
 	}
@@ -172,7 +172,7 @@ func (h *SubscriptionHandler) UpdateSubscription(w http.ResponseWriter, r *http.
 		case errors.Is(err, sql.ErrNoRows):
 			response.WriteError(w, http.StatusNotFound, "subscription not found")
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to update subscription")
+			response.WriteServerError(w, "failed to update subscription", err)
 		}
 		return
 	}
@@ -205,7 +205,7 @@ func (h *SubscriptionHandler) DeleteSubscription(w http.ResponseWriter, r *http.
 		case errors.Is(err, sql.ErrNoRows):
 			response.WriteError(w, http.StatusNotFound, "subscription not found")
 		default:
-			response.WriteError(w, http.StatusInternalServerError, "failed to delete subscription")
+			response.WriteServerError(w, "failed to delete subscription", err)
 		}
 		return
 	}

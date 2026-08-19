@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -9,6 +11,14 @@ import (
 )
 
 var ErrInvalidToken = errors.New("invalid token")
+
+func generateTokenID() (string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
+}
 
 type Claims struct {
 	UserID int64       `json:"user_id"`
@@ -29,10 +39,16 @@ func NewJWTManager(secret string, ttl time.Duration) *JWTManager {
 }
 
 func (m *JWTManager) Generate(userID int64, role models.Role) (string, error) {
+	tokenID, err := generateTokenID()
+	if err != nil {
+		return "", err
+	}
+
 	claims := Claims{
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(m.ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},

@@ -37,10 +37,11 @@ func main() {
 	jwtManager := auth.NewJWTManager(cfg.JWT.Secret, cfg.JWT.TTL)
 
 	usersRepository := repository.NewUsersRepository(db)
-	authService := service.NewAuthService(usersRepository, jwtManager)
+	revokedTokensRepository := repository.NewRevokedTokensRepository(db)
+	authService := service.NewAuthService(usersRepository, revokedTokensRepository, jwtManager)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	appRouter := router.New(subscriptionHandler, authHandler, jwtManager)
+	appRouter := router.New(subscriptionHandler, authHandler, jwtManager, authService)
 
 	address := ":" + cfg.Server.Port
 

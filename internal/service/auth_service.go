@@ -6,6 +6,7 @@ import (
 	"errors"
 	"subscriptions-api-postgres/internal/auth"
 	"subscriptions-api-postgres/internal/models"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
@@ -16,15 +17,22 @@ type UsersRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (models.User, error)
 }
 
-type AuthService struct {
-	usersRepo  UsersRepository
-	jwtManager *auth.JWTManager
+type RevokedTokensRepository interface {
+	RevokeToken(ctx context.Context, jti string, expiresAt time.Time) error
+	IsRevoked(ctx context.Context, jti string) (bool, error)
 }
 
-func NewAuthService(repo UsersRepository, jwtManager *auth.JWTManager) *AuthService {
+type AuthService struct {
+	usersRepo         UsersRepository
+	revokedTokensRepo RevokedTokensRepository
+	jwtManager        *auth.JWTManager
+}
+
+func NewAuthService(repo UsersRepository, revokedTokensRepo RevokedTokensRepository, jwtManager *auth.JWTManager) *AuthService {
 	return &AuthService{
-		usersRepo:  repo,
-		jwtManager: jwtManager,
+		usersRepo:         repo,
+		revokedTokensRepo: revokedTokensRepo,
+		jwtManager:        jwtManager,
 	}
 }
 
@@ -82,4 +90,12 @@ func (s *AuthService) Login(ctx context.Context, input models.UserLoginInput) (s
 	}
 
 	return token, nil
+}
+
+func (s *AuthService) Logout(ctx context.Context, claims *auth.Claims) error {
+	return s.revokedTokensRepo.RevokeToken(ctx, claims.ID, claims.ExpiresAt.Time)
+}
+
+func (s *AuthService) IsTokenRevoked(ctx context.Context, jti string) (bool, error) {
+	return s.revokedTokensRepo.IsRevoked(ctx, jti)
 }

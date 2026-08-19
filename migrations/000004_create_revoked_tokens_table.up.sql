@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS revoked_tokens (
+    jti VARCHAR(32) PRIMARY KEY,
+    expires_at TIMESTAMPTZ NOT NULL
+);

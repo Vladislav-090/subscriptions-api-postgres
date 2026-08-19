@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"subscriptions-api-postgres/internal/auth"
@@ -8,7 +9,11 @@ import (
 	"subscriptions-api-postgres/internal/response"
 )
 
-func Authenticate(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
+type TokenRevoker interface {
+	IsTokenRevoked(ctx context.Context, jti string) (bool, error)
+}
+
+func Authenticate(jwtManager *auth.JWTManager, revoker TokenRevoker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -20,6 +25,16 @@ func Authenticate(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
 			claims, err := jwtManager.Parse(token)
 			if err != nil {
 				response.WriteError(w, http.StatusUnauthorized, "invalid or expired token")
+				return
+			}
+
+			revoked, err := revoker.IsTokenRevoked(r.Context(), claims.ID)
+			if err != nil {
+				response.WriteServerError(w, "failed to check token status", err)
+				return
+			}
+			if revoked {
+				response.WriteError(w, http.StatusUnauthorized, "token has been revoked")
 				return
 			}
 

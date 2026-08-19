@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"subscriptions-api-postgres/internal/auth"
 	"subscriptions-api-postgres/internal/models"
 	"subscriptions-api-postgres/internal/response"
 	"subscriptions-api-postgres/internal/service"
@@ -71,4 +72,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteJSON(w, http.StatusOK, loginResponse{Token: token})
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	claims, ok := auth.ClaimsFromContext(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, errMissingClaims.Error())
+		return
+	}
+
+	if err := h.authService.Logout(r.Context(), claims); err != nil {
+		response.WriteServerError(w, "failed to logout", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

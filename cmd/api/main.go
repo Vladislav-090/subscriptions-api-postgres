@@ -8,9 +8,11 @@ import (
 	"subscriptions-api-postgres/internal/config"
 	"subscriptions-api-postgres/internal/database"
 	"subscriptions-api-postgres/internal/handlers"
+	"subscriptions-api-postgres/internal/ratelimit"
 	"subscriptions-api-postgres/internal/repository"
 	"subscriptions-api-postgres/internal/router"
 	"subscriptions-api-postgres/internal/service"
+	"time"
 )
 
 func main() {
@@ -41,7 +43,9 @@ func main() {
 	authService := service.NewAuthService(usersRepository, revokedTokensRepository, jwtManager)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	appRouter := router.New(subscriptionHandler, authHandler, jwtManager, authService)
+	loginLimiter := ratelimit.NewLimiter(5, time.Minute)
+
+	appRouter := router.New(subscriptionHandler, authHandler, jwtManager, authService, loginLimiter)
 
 	address := ":" + cfg.Server.Port
 

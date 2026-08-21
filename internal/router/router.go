@@ -13,16 +13,18 @@ func New(
 	authHandler *handlers.AuthHandler,
 	jwtManager *auth.JWTManager,
 	revoker middleware.TokenRevoker,
+	loginLimiter middleware.RateLimiter,
 ) http.Handler {
 	mux := http.NewServeMux()
 
 	authenticate := middleware.Authenticate(jwtManager, revoker)
 	requireAdmin := middleware.RequireRole(models.RoleAdmin)
+	rateLimitLogin := middleware.RateLimit(loginLimiter)
 
 	mux.HandleFunc("GET /health", handlers.HealthCheck)
 
 	mux.HandleFunc("POST /register", authHandler.Register)
-	mux.HandleFunc("POST /login", authHandler.Login)
+	mux.Handle("POST /login", middleware.Chain(http.HandlerFunc(authHandler.Login), rateLimitLogin))
 	mux.Handle("POST /logout", middleware.Chain(http.HandlerFunc(authHandler.Logout), authenticate))
 
 	mux.Handle("POST /subscriptions", middleware.Chain(http.HandlerFunc(subscriptionHandler.CreateSubscription), authenticate))
